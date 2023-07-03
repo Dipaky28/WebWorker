@@ -5,7 +5,6 @@ console.log(pyodideWorker);
 const callbacks = {};
 
 pyodideWorker.onmessage = (event) => {
-  console.log(event);
   const { id, ...data } = event.data;
   const onSuccess = callbacks[id];
   delete callbacks[id];
@@ -18,7 +17,6 @@ const asyncRun = (() => {
   return (script, context) => {
     console.log(script)
     console.log(context)
-    console.log(pyodide)
     // the id could be generated more carefully
     id = (id + 1) % Number.MAX_SAFE_INTEGER;
     return new Promise((onSuccess) => {
@@ -27,7 +25,6 @@ const asyncRun = (() => {
         ...context,
         python: script,
         id,
-        pyodide: pyodide
       });
     });
   };

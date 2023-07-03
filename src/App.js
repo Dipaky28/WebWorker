@@ -5,7 +5,8 @@ import { asyncRun } from "./py-worker";
 // import usePyodide from './pyodideInstance';
 
 const script = `
-    for i in range(10):
+    a=input();
+    for i in range(int(a)):
         print(i);
 `;
 
@@ -19,6 +20,7 @@ export default function App() {
    const run = async () => {
     try {
       const { results, error } = await asyncRun(script, context);
+      console.log(results);
       if (results) {
         console.log("pyodideWorker return results: ", results);
       } else if (error) {
