@@ -1,3 +1,4 @@
+/* eslint-disable */
 export default () => {
     importScripts("https://cdn.jsdelivr.net/pyodide/v0.23.3/full/pyodide.js");
     var results = '';
