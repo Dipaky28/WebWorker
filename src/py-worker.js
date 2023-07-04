@@ -2,6 +2,15 @@ import WorkerBuilder from "./worker-builder";
 import FiboWorker from "./webworker";
 const pyodideWorker = new WorkerBuilder(FiboWorker);
 
+let serviceWorker;
+
+navigator.serviceWorker.register('./service-worker.js').then(function(registration) {
+  serviceWorker = registration.active;
+  if (!serviceWorker) {
+    location.reload();
+  }
+});
+
 let MessageBuilder = function() {
   this.buildRunPythonMessage = function(id, python, context) {
     return {
@@ -26,11 +35,10 @@ let PyodideRunner = function() {
   this.curr_id = 0;
 
   pyodideWorker.onmessage = (event) => {
-    if (event.type == "REQUEST_INPUT") {
+    if (event.data.type == "REQUEST_INPUT") {
       // Wait for input by user
-      let inputArr = new Int16Array(event.sharedBuffer);
-      Atomics.store(inputArr, 0, 123);
-      Atomics.notify(inputArr, 0, 1);
+      let inputValue = prompt("Enter a value", "10");
+      this.passInput(inputValue);
     } else {
       const { id, ...data } = event.data;
       const onSuccess = callbacks[id];
@@ -50,7 +58,7 @@ let PyodideRunner = function() {
   
   this.passInput = function(inputValue) {
     let msg = msgBuilder.buildInputValueMessage(inputValue);
-    pyodideWorker.postMessage(msg);
+    serviceWorker.postMessage(msg);
   }
 
   this.generateNewId = function() {

@@ -7,11 +7,9 @@ export default () => {
     async function loadPyodideAndPackages() {
     self.pyodide = await loadPyodide({
         stdin: () => {
-            const sab = new SharedArrayBuffer(1024);
-            let inputArr = Int16Array(sab);
-            worker.postMessage({"type": "REQUEST_INPUT", "sharedBuffer": sab});
-            Atomics.wait(inputArr, 0, 0);
-            return inputArr[0]
+            let responseText = self.fetchInput("some fake output");
+            console.log(responseText);
+            return responseText;
         },
         stdout: (output) => {
             results += output + '\n';
@@ -42,4 +40,13 @@ export default () => {
             self.postMessage({ id, state: "ERROR", error: error.message });
         }
     };
+
+    self.fetchInput = function(output) {
+        self.postMessage({type: "REQUEST_INPUT", output: output});
+        const request = new XMLHttpRequest();
+        request.open('GET', `${self.location.origin}/wait_for_user_input/`, false);
+        request.send(null);
+        console.log('status', request.status);
+        return request.responseText;
+    }
 }
