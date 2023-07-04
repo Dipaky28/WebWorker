@@ -9,7 +9,6 @@ let resolver;
   
 addEventListener('message', event => {
     if (event.data.type == "SET_INPUT_VALUE") {
-        console.log(event.data);
         console.log('service resolving input promise');
         resolver(new Response(event.data.inputValue, {status: 200}));
         resolver = null;

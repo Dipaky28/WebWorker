@@ -7,8 +7,10 @@ export default () => {
     async function loadPyodideAndPackages() {
     self.pyodide = await loadPyodide({
         stdin: () => {
-            let responseText = self.fetchInput("some fake output");
+            let responseText = self.fetchInput(results);
             console.log(responseText);
+            // Reset the output since the output so far has already been passed to the main thread
+            results = '';
             return responseText;
         },
         stdout: (output) => {
@@ -35,9 +37,9 @@ export default () => {
         self.pyodide_context = context;
         try {
             await self.pyodide.runPythonAsync(python);
-            self.postMessage({ id, state: "OK", output: results });
+            self.postMessage({ id, type: "RUN_PYTHON_RESPONSE", state: "OK", output: results });
         } catch (error) {
-            self.postMessage({ id, state: "ERROR", error: error.message });
+            self.postMessage({ id, type: "RUN_PYTHON_RESPONSE", state: "ERROR", error: error.message });
         }
     };
 
@@ -46,7 +48,6 @@ export default () => {
         const request = new XMLHttpRequest();
         request.open('GET', `${self.location.origin}/wait_for_user_input/`, false);
         request.send(null);
-        console.log('status', request.status);
         return request.responseText;
     }
 }

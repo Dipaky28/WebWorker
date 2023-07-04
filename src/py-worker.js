@@ -20,7 +20,6 @@ let MessageBuilder = function() {
       ...context
     };
   };
-
   this.buildInputValueMessage = function(inputValue) {
     return {
       type: "SET_INPUT_VALUE",
@@ -35,15 +34,19 @@ let PyodideRunner = function() {
   this.curr_id = 0;
 
   pyodideWorker.onmessage = (event) => {
-    if (event.data.type == "REQUEST_INPUT") {
-      // Wait for input by user
-      let inputValue = prompt("Enter a value", "10");
-      this.passInput(inputValue);
-    } else {
-      const { id, ...data } = event.data;
-      const onSuccess = callbacks[id];
-      delete callbacks[id];
-      onSuccess(data);
+    switch (event.data.type) {
+      case "REQUEST_INPUT":
+        // Wait for input by user, can be some asynchronous function here
+        console.log("Output of pyodide before fetching input: "+event.data.output)
+        let inputValue = prompt("Enter a value", "10");
+        this.passInput(inputValue);
+        break
+      default:
+        const { id, type, ...data } = event.data;
+        const onSuccess = callbacks[id];
+        delete callbacks[id];
+        onSuccess(data);
+        break;
     }
   };
 
