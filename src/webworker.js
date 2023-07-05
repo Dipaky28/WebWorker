@@ -3,23 +3,30 @@ export default () => {
     importScripts("https://cdn.jsdelivr.net/pyodide/v0.23.3/full/pyodide.js");
     var results = '';
     async function loadPyodideAndPackages() {
-    self.pyodide = await loadPyodide({
-        stdin: () => {
-            return '100';
-        },
-        stdout: (text) => {
-                        if (text !== "Python initialization complete") {
-                            results += text + '\n';
-                    }
-                    },
-      });
-    await self.pyodide.loadPackage(["numpy", "pytz"]);
+        self.pyodide = await loadPyodide({
+            stdin: () => {
+                // Atomics.wait(arr, 0, 0);
+                return '5';
+            },
+            stdout: (text) => {
+                            if (text !== "Python initialization complete") {
+                                results += text + '\n';
+                        }
+                        },
+        });
+        await self.pyodide.loadPackage(["numpy", "pytz"]);
     }
     let pyodideReadyPromise = loadPyodideAndPackages();
 
     self.onmessage = async (event) => {
     // make sure loading is done
     await pyodideReadyPromise;
+    console.log(event.data);
+    let arr = new Int32Array(event.data.buffMemLength);
+    Atomics.wait(arr, 0, 0);
+    console.group('[the worker thread]');
+    console.log('Data received from the main thread: %i', arr[0]);
+    console.groupEnd();
     // Don't bother yet with this line, suppose our API is built in such a way:
     const { id, python, ...context } = event.data;
     console.log('event.data', python);

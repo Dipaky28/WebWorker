@@ -10,10 +10,17 @@ pyodideWorker.onmessage = (event) => {
   delete callbacks[id];
   onSuccess(data);
 };
+let buffMemLength;
+if(window.crossOriginIsolated) {
+  buffMemLength = new window.SharedArrayBuffer(4); //byte length
+} else {
+  buffMemLength = new ArrayBuffer(4); //byte length
+}
+let typedArr = new Int32Array(buffMemLength);
 
 const asyncRun = (() => {
+  typedArr[0] = 20;
   let id = 0; // identify a Promise
-
   return (script, context) => {
     console.log(script)
     console.log(context)
@@ -25,6 +32,7 @@ const asyncRun = (() => {
         ...context,
         python: script,
         id,
+        buffMemLength
       });
     });
   };
