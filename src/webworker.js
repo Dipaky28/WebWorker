@@ -3,20 +3,22 @@ export default () => {
 
     self.pyodide_context = {};
     let results = '';
+    let workerID = 0;
+    let currInputRequestID = 0;
 
     async function loadPyodideAndPackages() {
-    self.pyodide = await loadPyodide({
-        stdin: () => {
-            let responseText = self.fetchInput(results);
-            console.log(responseText);
-            // Reset the output since the output so far has already been passed to the main thread
-            results = '';
-            return responseText;
-        },
-        stdout: (output) => {
-            results += output + '\n';
-        }
-      });
+        self.pyodide = await loadPyodide({
+            stdin: () => {
+                let responseText = fetchInput(results);
+                console.log(responseText);
+                // Reset the output since the output so far has already been passed to the main thread
+                results = '';
+                return responseText;
+            },
+            stdout: (output) => {
+                results += output + '\n';
+            }
+        });
     }
     let pyodideReadyPromise = loadPyodideAndPackages();
 
@@ -24,12 +26,15 @@ export default () => {
         await pyodideReadyPromise;
         switch (event.data.type) {
             case "RUN_PYTHON":
-                self.runPython(event.data);
+                runPython(event.data);
+                break;
+            case "PASS_WORKER_ID":
+                setWorkerID(event.data);
                 break;
         }
     };
 
-    self.runPython = async function(data) {
+     async function runPython(data) {
         // Set the timer logic here, and post a message with an error code if it takes too long
         results = '';
         const { id, type, python, ...context } = data;
@@ -43,11 +48,23 @@ export default () => {
         }
     };
 
-    self.fetchInput = function(output) {
-        self.postMessage({type: "REQUEST_INPUT", output: output});
-        const request = new XMLHttpRequest();
-        request.open('GET', `${self.location.origin}/wait_for_user_input/`, false);
-        request.send(null);
-        return request.responseText;
+    function fetchInput(output) {
+        let inputID = generateNewInputID();
+        self.postMessage({type: "REQUEST_INPUT", output: output, id: inputID});
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `${self.location.origin}/wait_for_user_input/`, false);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.send(JSON.stringify({ id: inputID }));
+        console.log(xhr.status);
+        return xhr.responseText;
+    }
+
+    function setWorkerID(data) {
+        workerID = data.workerID;
+        console.log('workerID set to: '+workerID);
+    }
+    function generateNewInputID() {
+        currInputRequestID = (currInputRequestID + 1) % Number.MAX_SAFE_INTEGER;
+        return workerID + "_" + currInputRequestID;
     }
 }

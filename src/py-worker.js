@@ -1,15 +1,5 @@
 import WorkerBuilder from "./worker-builder";
 import FiboWorker from "./webworker";
-const pyodideWorker = new WorkerBuilder(FiboWorker);
-
-let serviceWorker;
-
-navigator.serviceWorker.register('./service-worker.js').then(function(registration) {
-  serviceWorker = registration.active;
-  if (!serviceWorker) {
-    location.reload();
-  }
-});
 
 let MessageBuilder = function() {
   this.buildRunPythonMessage = function(id, python, context) {
@@ -20,53 +10,71 @@ let MessageBuilder = function() {
       ...context
     };
   };
-  this.buildInputValueMessage = function(inputValue) {
+  this.buildInputValueMessage = function(messageID, inputValue) {
     return {
+      id: messageID,
       type: "SET_INPUT_VALUE",
       inputValue
     };
   };
+  this.buildSendMessageID = function(id) {
+    return {
+      type: "PASS_WORKER_ID",
+      "workerID": id
+    }
+  }
 };
 
-let PyodideRunner = function() {
-  const callbacks = {};
+let PyodideRunner = function(serviceWorkerInstance, workerID) {
+  const pyodideWorker = new WorkerBuilder(FiboWorker);
+  const serviceWorker = serviceWorkerInstance;
   const msgBuilder = new MessageBuilder();
-  this.curr_id = 0;
+
+  const callbacks = {};
+  let currID = 0;
+
+  // Send the worker its ID
+  sendWorkerID(workerID);
 
   pyodideWorker.onmessage = (event) => {
     switch (event.data.type) {
-      case "REQUEST_INPUT":
-        // Wait for input by user, can be some asynchronous function here
-        console.log("Output of pyodide before fetching input: "+event.data.output)
-        let inputValue = prompt("Enter a value", "10");
-        this.passInput(inputValue);
-        break
-      default:
+      case "RUN_PYTHON_RESPONSE":
         const { id, type, ...data } = event.data;
         const onSuccess = callbacks[id];
         delete callbacks[id];
         onSuccess(data);
         break;
+      case "REQUEST_INPUT":
+        // Wait for input by user, can be some asynchronous function here
+        console.log("Output of pyodide before fetching input: "+event.data.output)
+        let inputValue = prompt("Enter a value", "10");
+        let messageID = event.data.id;
+        passInput(inputValue, messageID);
+        break
     }
   };
 
   this.runPython = async function(python_code, context) {
-    this.generateNewId();
+    generateNewID();
     return new Promise((onSuccess) => {
-      callbacks[this.curr_id] = onSuccess;
-      let msg = msgBuilder.buildRunPythonMessage(this.curr_id, python_code, context);
+      callbacks[currID] = onSuccess;
+      let msg = msgBuilder.buildRunPythonMessage(currID, python_code, context);
       pyodideWorker.postMessage(msg);
     });
   };
   
-  this.passInput = function(inputValue) {
-    let msg = msgBuilder.buildInputValueMessage(inputValue);
+  function passInput(inputValue, messageID) {
+    let msg = msgBuilder.buildInputValueMessage(messageID, inputValue);
     serviceWorker.postMessage(msg);
-  }
-
-  this.generateNewId = function() {
-    this.curr_id = (this.curr_id + 1) % Number.MAX_SAFE_INTEGER;
   };
+
+  function sendWorkerID(id) {
+    let msg = msgBuilder.buildSendMessageID(id);
+    pyodideWorker.postMessage(msg);
+  }
+  function generateNewID() {
+    currID = (currID + 1) % Number.MAX_SAFE_INTEGER;
+  }
 };
 
 export { PyodideRunner };

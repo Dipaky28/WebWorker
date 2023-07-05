@@ -5,20 +5,30 @@ addEventListener('activate', () => {
     self.clients.claim();
 });
   
-let resolver;
+const callbacks = {};
   
 addEventListener('message', event => {
     if (event.data.type == "SET_INPUT_VALUE") {
         console.log('service resolving input promise');
+        let messageID = event.data.id;
+        console.log('responding to id: '+messageID);
+        let resolver = callbacks[messageID];
+        delete callbacks[messageID];
         resolver(new Response(event.data.inputValue, {status: 200}));
-        resolver = null;
     }
 });
   
-addEventListener('fetch', e => {
-    const u = new URL(e.request.url);
-    if (u.pathname === '/wait_for_user_input/') {
-        console.log('received service invitation')
-        e.respondWith(new Promise(r => resolver = r));
+addEventListener('fetch', async e => {
+    const requestedURL = new URL(e.request.url);
+    if (requestedURL.pathname === '/wait_for_user_input/' && e.request.method === 'POST') {
+        console.log('received service invitation');
+        e.respondWith(handleRequest(e.request));
     }
 });
+
+async function handleRequest(request) {
+    let requestJSON = await request.json();
+    let messageID = requestJSON.id;
+    console.log('handling id: '+messageID);
+    return new Promise(resolve => callbacks[messageID] = resolve);
+}

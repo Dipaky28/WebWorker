@@ -3,6 +3,8 @@ import logo from "./logo.svg";
 import "./App.css";
 import { PyodideRunner } from "./py-worker";
 
+let pyodideRunner;
+
 const python_code = `
 from js import pyodide_context
 print(pyodide_context.A_rank)
@@ -14,12 +16,23 @@ const context = {
   A_rank: [0.8, 0.4, 1.2, 3.7, 2.6, 5.8],
 };
 
-const pyodideRunner = new PyodideRunner();
+async function initializePyodideRunner() {
+  // Load the service worker outside the PyodideRunner object so a single service worker may be used with multiple PyodideRunner instances
+  let serviceWorker;
+  await navigator.serviceWorker.register('./service-worker.js').then(function(registration) {
+    serviceWorker = registration.active;
+    if (!serviceWorker) {
+      location.reload();
+    }
+  });
+  pyodideRunner = new PyodideRunner(serviceWorker, 23);
+}
+let pyodideRunnerReadyPromise = initializePyodideRunner();
 
 export default function App() {
    const run = async () => {
     try {
-      // Return a state object
+      await pyodideRunnerReadyPromise;
       let returnMsg = await pyodideRunner.runPython(python_code, context);
       if (returnMsg.state == "OK") {
         console.log("pyodideWorker return results: ", returnMsg.output);
