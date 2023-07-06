@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import logo from "./logo.svg";
 import "./App.css";
-import { asyncRun } from "./py-worker";
+import { asyncRun, setinput } from "./py-worker";
 // import usePyodide from './pyodideInstance';
 
 const script = `
@@ -42,6 +42,10 @@ export default function App() {
           <button
           onClick={() => run()}
           >Send Message</button>
+          <input id='name' placeholder="Enter input"/>
+          <button
+          onClick={() => setinput()}
+          >Send Input</button>
         </header>
       </div>
     );

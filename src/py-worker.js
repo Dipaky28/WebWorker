@@ -1,6 +1,6 @@
-import WorkerBuilder from "./worker-builder";
-import FiboWorker from "./webworker";
-const pyodideWorker = new WorkerBuilder(FiboWorker);
+/* eslint-disable */
+
+const pyodideWorker = new Worker(new URL('./webworker.js', import.meta.url));
 console.log(pyodideWorker);
 const callbacks = {};
 
@@ -17,7 +17,11 @@ if(window.crossOriginIsolated) {
   buffMemLength = new ArrayBuffer(4); //byte length
 }
 let typedArr = new Int32Array(buffMemLength);
-
+const setinput = () => {
+  const value = document.getElementById('name').value;
+  Atomics.store(typedArr, 0, value);
+  Atomics.notify(typedArr, 0, 1);
+ }
 const asyncRun = (() => {
   typedArr[0] = 20;
   let id = 0; // identify a Promise
@@ -38,4 +42,4 @@ const asyncRun = (() => {
   };
 })();
 
-export { asyncRun };
+export { asyncRun, setinput };
