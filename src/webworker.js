@@ -3,6 +3,7 @@
 importScripts("https://cdn.jsdelivr.net/pyodide/v0.23.3/full/pyodide.js");
 let results = '';
 let arr;
+self.interruptBuffer = null;
 async function loadPyodideAndPackages() {
 self.pyodide = await loadPyodide({
     stdin: () => {
@@ -31,6 +32,8 @@ self.pyodide = await loadPyodide({
 });
 
 await self.pyodide.loadPackage(["numpy", "pytz"]);
+self.pyodide.setInterruptBuffer(self.interruptBuffer);
+console.log('finished setting buffer');
 }
 
 const pyodideReadyPromise = loadPyodideAndPackages();
@@ -42,7 +45,7 @@ self.onmessage = async (event) => {
         await pyodideReadyPromise;
 
         console.log(event.data);
-        arr = new Int32Array(event.data.buffMemLength);
+        arr = new Int32Array(event.data.InputBuffer);
 
         console.group('[the worker thread]');
         console.log('Data received from the main thread: %i', arr[0]);
@@ -65,6 +68,8 @@ self.onmessage = async (event) => {
         console.log('Interrupting execution');
         console.log(event.data.interruptBuffer);
         console.log('--------------------------------')
-        self.pyodide.setInterruptBuffer(event.data.interruptBuffer);
+        // self.pyodide.setInterruptBuffer(event.data.interruptBuffer);
+        self.interruptBuffer = event.data.interruptBuffer;
+        console.log('will set buffer');
     }
 };

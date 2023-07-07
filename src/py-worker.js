@@ -16,13 +16,14 @@ if(window.crossOriginIsolated) {
 } else {
   InputBuffer = new ArrayBuffer(1024); //byte length
 }
-let typedArr = new Int32Array(InputBuffer);
 
-// const interruptBuffer = new Int32Array(new SharedArrayBuffer(4));
+const interruptBuffer = new Int32Array(new SharedArrayBuffer(4));
+pyodideWorker.postMessage({cmd: 'interruptExecution', interruptBuffer})
 
 const setinput = () => {
   const text = document.getElementById('name').value;
   // const text = "Hello, World!";
+  let typedArr = new Int32Array(InputBuffer);
   for (let i = 0; i < text.length; i++) {
     typedArr[i] = text.charCodeAt(i);
   }
@@ -34,12 +35,12 @@ const setinput = () => {
  }
 
 const interruptExecution = () => {
-  // interruptBuffer[0] = 2;
   console.log('Execution interupption is in progress');
-  // pyodideWorker.postMessage({cmd: 'interruptExecution', interruptBuffer})
+  interruptBuffer[0] = 2;
 
 };
 const asyncRun = (() => {
+  let typedArr = new Int32Array(InputBuffer);
   typedArr.fill(-1);
   console.log(`typedArr: ${typedArr}`);
   let id = 0; // identify a Promise
