@@ -10,24 +10,43 @@ pyodideWorker.onmessage = (event) => {
   delete callbacks[id];
   onSuccess(data);
 };
-let buffMemLength;
+let InputBuffer;
 if(window.crossOriginIsolated) {
-  buffMemLength = new window.SharedArrayBuffer(4); //byte length
+  InputBuffer = new window.SharedArrayBuffer(1024); //byte length
 } else {
-  buffMemLength = new ArrayBuffer(4); //byte length
+  InputBuffer = new ArrayBuffer(1024); //byte length
 }
-let typedArr = new Int32Array(buffMemLength);
+let typedArr = new Int32Array(InputBuffer);
+
+// const interruptBuffer = new Int32Array(new SharedArrayBuffer(4));
+
 const setinput = () => {
-  const value = document.getElementById('name').value;
-  Atomics.store(typedArr, 0, value);
-  Atomics.notify(typedArr, 0, 1);
+  const text = document.getElementById('name').value;
+  // const text = "Hello, World!";
+  for (let i = 0; i < text.length; i++) {
+    typedArr[i] = text.charCodeAt(i);
+  }
+  console.log(typedArr);
+  // typedArr.set(encodedText);
+  // const decodedText = String.fromCharCode.apply(null, typedArr);
+  // Atomics.store(typedArr, 0, text);
+  Atomics.notify(typedArr, 0);
  }
+
+const interruptExecution = () => {
+  // interruptBuffer[0] = 2;
+  console.log('Execution interupption is in progress');
+  // pyodideWorker.postMessage({cmd: 'interruptExecution', interruptBuffer})
+
+};
 const asyncRun = (() => {
-  typedArr[0] = 20;
+  typedArr.fill(-1);
+  console.log(`typedArr: ${typedArr}`);
   let id = 0; // identify a Promise
   return (script, context) => {
     console.log(script)
     console.log(context)
+    console.log('updated', typedArr);
     // the id could be generated more carefully
     id = (id + 1) % Number.MAX_SAFE_INTEGER;
     return new Promise((onSuccess) => {
@@ -36,10 +55,11 @@ const asyncRun = (() => {
         ...context,
         python: script,
         id,
-        buffMemLength
+        InputBuffer,
+        cmd: 'runPython'
       });
     });
   };
 })();
 
-export { asyncRun, setinput };
+export { asyncRun, setinput, interruptExecution };

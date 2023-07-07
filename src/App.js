@@ -1,13 +1,14 @@
 import React, { Component } from "react";
 import logo from "./logo.svg";
 import "./App.css";
-import { asyncRun, setinput } from "./py-worker";
+import { asyncRun, setinput, interruptExecution  } from "./py-worker";
 // import usePyodide from './pyodideInstance';
 
 const script = `
-    a=input();
-    for i in range(int(a)):
-        print(i);
+    i = int(input())
+    while (True):
+      print('i', i)
+      i = i + 1
 `;
 
 const context = {
@@ -46,6 +47,10 @@ export default function App() {
           <button
           onClick={() => setinput()}
           >Send Input</button>
+
+          <button
+          onClick={() => interruptExecution()}
+          >Stop execution</button>
         </header>
       </div>
     );
